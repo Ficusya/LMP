@@ -1,0 +1,119 @@
+#include<iostream>
+#include<vector>
+#include<math.h>
+#include<algorithm>
+
+struct Point 
+{
+	int x, y;
+};
+
+struct Cell
+{
+	bool used = false;
+	Point coorts;
+};
+
+int Perimetr(std::vector<std::pair<int, int>> xy)
+{
+	double per = 0;
+	int ind = 0;
+	for (int i = 1; i < xy.size(); ++i)
+	{
+		per += sqrt(pow((xy[i - 1].first - xy[i].first), 2) + pow((xy[i - 1].second - xy[i].second), 2));
+		ind = i;
+	}
+	per += sqrt(pow((xy[0].first - xy[ind].first), 2) + pow((xy[0].second - xy[ind].second), 2));
+	return per;
+}
+
+int orientation(Point p, Point q, Point r) 
+{
+	int val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+	if (val == 0) return 0; // �����������
+	return (val > 0) ? 1 : 2; // �� ������� ��� ������ ������� �������
+}
+
+bool onSegment(Point p, Point q, Point r) 
+{
+	bool flag = false;
+	if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) &&
+		q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y))
+		flag = true;
+	return flag;
+}
+
+bool doIntersect(Point p1, Point q1, Point p2, Point q2) {
+	// ������� ������ ����������, ����������� ��� ����� �������
+	int o1 = orientation(p1, q1, p2);
+	int o2 = orientation(p1, q1, q2);
+	int o3 = orientation(p2, q2, p1);
+	int o4 = orientation(p2, q2, q1);
+	// ����� ������
+	if (o1 != o2 && o3 != o4)
+		return true;
+	// ����������� ������
+	// p1, q1 � p2 ����������� � p2 ����� �� ������� p1q1
+	if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+	// p1, q1 � p2 ����������� � q2 ����� �� ������� p1q1
+	if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+	// p2, q2 � p1 ����������� � p1 ����� �� ������� p2q2
+	if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+	// p2, q2 � q1 ����������� � q1 ����� �� ������� p2q2
+	if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+	return false; // �� ������������
+}
+
+void task(std::vector<Cell> A, std::vector<Point>& path)
+{
+	for (int i = 3; i < A.size(); ++i)
+	{
+		if (!A[i].used)
+			if(!doIntersect(A[i].coorts, A[i-1].coorts, A[i-2].coorts, A[i-3].coorts))
+			path.push_back(A[i].coorts);
+	}
+}
+
+int main()
+{
+	std::vector<Cell> XY;
+	std::vector<std::pair<int, int>> tmp;
+	int n;
+	std::cin >> n;
+	XY.resize(n);
+	tmp.resize(n);
+	int x, y;
+	for (int i = 0; i < n; ++i)
+	{
+		std::cin >> x >> y;
+		XY[i].used = false;
+		XY[i].coorts.x = x;
+		XY[i].coorts.y = y;
+	}
+	std::sort(XY.begin(), XY.end(), [](const Cell& a, const Cell& b) {
+		return a.coorts.x < b.coorts.x;
+		});
+	std::sort(XY.begin(), XY.end(), [](const Cell& a, const Cell& b) {
+		return (a.coorts.x == b.coorts.x && a.coorts.y < b.coorts.y);
+		});
+	//
+	std::cout << "\n=================\n";
+	for (auto x : XY)
+	{
+		std::cout << x.coorts.x << ' ' << x.coorts.y << '\n';
+	}
+	std::cout << "Perimetr: " << Perimetr(tmp);
+	//
+	for (int i = 0; i < 2; ++i)
+	{
+		tmp[i].first = XY[i].coorts.x;
+		tmp[i].second = XY[i].coorts.y;
+	}
+	std::cout << "\n=================\n";
+	for (auto x : tmp)
+	{
+		std::cout << x.first << ' ' << x.second << '\n';
+	}
+	return 0;
+}
