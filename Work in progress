@@ -1,7 +1,9 @@
 #include <iostream>
 #include <vector>
-
-using namespace std;
+using std::min;
+using std::max;
+using std::cout;
+using std::vector;
 
 struct Point 
 {
@@ -15,7 +17,9 @@ struct Segment
     Point p2;
 };
 
-vector<vector<Point>> polygons;
+double maxPerimeter = 0;
+
+vector<Point> max_polygon;
 
 double area(Point a, Point b, Point c) 
 {
@@ -48,56 +52,36 @@ bool edge_valid(Point p, vector<Point> polygon)
 {
     if (polygon.size() < 2) return true;
     Point last = polygon.back();
+    bool flag = true;
     Segment s1 = { p, last };
     for (int i = 0; i < polygon.size() - 2; ++i)
     {
         Segment s2 = { polygon[i], polygon[i + 1] };
-        if (intersect(s1, s2)) return false;
+        if (intersect(s1, s2)) 
+            flag = false;
     }
-    return true;
+    return flag;
 }
 
 bool last_edge_valid(Point p, vector<Point> polygon)
 {
     if (polygon.size() < 2) return true;
     Point last = polygon.back();
+    bool flag = true;
     Segment s1 = { p, last };
     for (int i = 1; i < polygon.size() - 2; ++i)
     {
         Segment s2 = { polygon[i], polygon[i + 1] };
-        if (intersect(s1, s2)) return false;
+        if (intersect(s1, s2)) 
+            flag = false;
     }
-    return true;
+    return flag;
 }
 
-void build_polygons(vector<Point> coords, vector<Point> polygon) 
-{
-    if (coords.empty())
-    {
-        if (last_edge_valid(polygon[0], polygon))
-        {
-            polygon.push_back(polygon[0]);
-            polygons.push_back(polygon);
-        }
-        return;
-    }
-    for (int i = 0; i < coords.size(); ++i) 
-    {
-        if (edge_valid(coords[i], polygon))
-        {
-            vector<Point> new_coords = coords;
-            vector<Point> new_polygon = polygon;
-            new_polygon.push_back(coords[i]);
-            new_coords.erase(new_coords.begin() + i);
-            build_polygons(new_coords, new_polygon);
-        }
-    }
-}
-
-double perimeter(vector<Point> polygon) 
+double perimeter(vector<Point> polygon)
 {
     double sum = 0;
-    for (int i = 0; i < polygon.size(); ++i) 
+    for (int i = 0; i < polygon.size(); ++i)
     {
         int j = (i + 1) % polygon.size();
         double dx = polygon[i].x - polygon[j].x;
@@ -107,26 +91,39 @@ double perimeter(vector<Point> polygon)
     return sum;
 }
 
+void build_polygons(vector<Point> coords, vector<Point> polygon) 
+{
+    if(coords.size() == polygon.size() && last_edge_valid(polygon[0], polygon))
+    {
+        polygon.push_back(polygon[0]);
+        double P = perimeter(polygon);
+        if (P > maxPerimeter)
+        {
+            maxPerimeter = P;
+            max_polygon = polygon;
+        }
+    }
+    for (int i = 0; i < coords.size(); ++i) 
+    {
+        if (edge_valid(coords[i], polygon))
+        {
+            polygon.push_back(coords[i]);
+            build_polygons(coords, polygon);
+            polygon.erase(polygon.end() - 1);
+        }
+    }
+}
+
 int main() 
 {
     vector<Point> coords = { {0, 0}, {3, 3}, {3, 0}, {0, 3}, {2, 5} };
     vector<Point> polygon;
     build_polygons(coords, polygon);
-    double max_perimeter = 0;
-    vector<Point> max_polygon;
-    for (auto p : polygons)
-    {
-        if (perimeter(p) > max_perimeter)
-        {
-            max_perimeter = perimeter(p);
-            max_polygon = p;
-        }
-    }
     cout << "Polygon with max perimeter: ";
     for (auto p : max_polygon)
     {
         cout << "( " << p.x << ", " << p.y << " )";
     }
-    cout << " Perimeter: " << max_perimeter << endl;
+    cout << "\nPerimeter: " << maxPerimeter << '\n';
     return 0;
 }
