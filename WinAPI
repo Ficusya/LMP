@@ -1,0 +1,45 @@
+#include <iostream>
+#include <Windows.h>
+#include <process.h>
+using std::cout;
+
+int count = 0;
+const int n = 4, m = 5;
+int a[n][m];
+const size_t NTHREAD = n;
+
+void task(int i)
+{
+    bool flag = true;
+    for (int j = 0; j < m / 2; ++j)
+    {
+        if (a[i][j] != a[i][m - j - 1])
+        {
+            flag = false;
+        }
+    }
+    if (flag)
+        count++;
+}
+
+int main()
+{
+    srand(time(NULL));
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            a[i][j] = rand() % 2;
+            cout << a[i][j] << " ";
+        }
+        cout << '\n';
+    }
+    HANDLE threads[NTHREAD];
+    for (int i = 0; i < NTHREAD; ++i)
+    {
+        threads[i] = (HANDLE)_beginthread((_beginthread_proc_type)task, 0, (void*)i);
+    }
+    WaitForMultipleObjects(NTHREAD, threads, TRUE, INFINITE);
+    cout << count << '\n';
+    return 0;
+}
