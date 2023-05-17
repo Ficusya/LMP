@@ -3,43 +3,59 @@
 #include <process.h>
 using std::cout;
 
-int count = 0;
 const int n = 4, m = 5;
 int a[n][m];
+bool res[n];
 const size_t NTHREAD = n;
 
-void task(int i)
+unsigned __stdcall task(int i)
 {
     bool flag = true;
-    for (int j = 0; j < m / 2; ++j)
+    for (int j = 0; j < m / 2 && flag; ++j)
     {
         if (a[i][j] != a[i][m - j - 1])
-        {
             flag = false;
-        }
     }
-    if (flag)
-        count++;
+    res[i] = flag;
+    _endthreadex(0);
+    return 0;
 }
 
 int main()
 {
-    srand(time(NULL));
-    for (int i = 0; i < n; i++)
+    bool choice = true;
+    while (choice)
     {
-        for (int j = 0; j < m; j++)
+        int count = 0;
+        srand(time(NULL));
+        for (int i = 0; i < n; i++)
         {
-            a[i][j] = rand() % 2;
-            cout << a[i][j] << " ";
+            res[i] = false;
+            for (int j = 0; j < m; j++)
+            {
+                a[i][j] = rand() % 2;
+                cout << a[i][j] << " ";
+            }
+            cout << '\n';
         }
-        cout << '\n';
+        HANDLE threads[NTHREAD];
+        for (size_t i = 0; i < NTHREAD; ++i)
+        {
+            threads[i] = (HANDLE)_beginthreadex(nullptr, 0, (_beginthreadex_proc_type)task, (void*)i, 0, nullptr);
+        }
+        WaitForMultipleObjects(NTHREAD, threads, TRUE, INFINITE);
+
+        for (size_t i = 0; i < n; ++i)
+            if (res[i])
+                ++count;
+
+        cout << "Symmetrical lines: " << count << '\n';
+        for (size_t i = 0; i < NTHREAD; ++i)
+            CloseHandle(threads[i]);
+
+        cout << "Again? ";
+        std::cin >> choice;
+        cout << "==========\n";
     }
-    HANDLE threads[NTHREAD];
-    for (int i = 0; i < NTHREAD; ++i)
-    {
-        threads[i] = (HANDLE)_beginthread((_beginthread_proc_type)task, 0, (void*)i);
-    }
-    WaitForMultipleObjects(NTHREAD, threads, TRUE, INFINITE);
-    cout << count << '\n';
     return 0;
 }
