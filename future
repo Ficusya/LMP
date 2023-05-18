@@ -5,19 +5,24 @@ using std::cout;
 int count = 0;
 const int n = 4, m = 5;
 int a[n][m];
-const size_t NTHREAD = n;
+const size_t NTHREAD = 3;
+size_t range = n / NTHREAD;
 
-bool task(int i)
+int task(int i)
 {
     bool flag = true;
-    for (int j = 0; j < m / 2; ++j)
+    int cnt = 0;
+    for (int k = i; k < i + range; ++k)
     {
-        if (a[i][j] != a[i][m - j - 1])
+        for (int j = 0; j < m / 2; ++j)
         {
-            flag = false;
+            if (a[k][j] != a[k][m - j - 1])
+                flag = false;
         }
+        if (flag) ++cnt;
+        else flag = true;
     }
-    return flag;
+    return cnt;
 }
 
 int main()
@@ -32,15 +37,27 @@ int main()
         }
         cout << '\n';
     }
-    std::future<bool> threads[NTHREAD];
+    std::future<int> threads[NTHREAD];
     for (int i = 0; i < NTHREAD; ++i)
     {
-        threads[i] = std::async(task, i);
+        threads[i] = std::async(task, i * range);
     }
+
+    bool flag = true;
+    for (int i = range * NTHREAD; i < n; ++i)
+    {
+        for (int j = 0; j < m / 2; ++j)
+        {
+            if (a[i][j] != a[i][m - j - 1])
+                flag = false;
+        }
+        if (flag) ++count;
+        else flag = true;
+    }
+
     for (int i = 0; i < NTHREAD; ++i)
     {
-        if (threads[i].get())
-            ++count;
+        count += threads[i].get();
     }
     cout << count << '\n';
     return 0;
