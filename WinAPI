@@ -6,17 +6,22 @@ using std::cout;
 const int n = 4, m = 5;
 int a[n][m];
 bool res[n];
-const size_t NTHREAD = n;
+const size_t NTHREAD = 3;
+size_t range = n / NTHREAD;
 
 unsigned __stdcall task(int i)
 {
     bool flag = true;
-    for (int j = 0; j < m / 2 && flag; ++j)
+    for (int k = i; k < i + range; ++k)
     {
-        if (a[i][j] != a[i][m - j - 1])
-            flag = false;
+        flag = true;
+        for (int j = 0; j < m / 2 && flag; ++j)
+        {
+            if (a[k][j] != a[k][m - j - 1])
+                flag = false;
+        }
+        res[k] = flag;
     }
-    res[i] = flag;
     _endthreadex(0);
     return 0;
 }
@@ -41,8 +46,19 @@ int main()
         HANDLE threads[NTHREAD];
         for (size_t i = 0; i < NTHREAD; ++i)
         {
-            threads[i] = (HANDLE)_beginthreadex(nullptr, 0, (_beginthreadex_proc_type)task, (void*)i, 0, nullptr);
+            threads[i] = (HANDLE)_beginthreadex(nullptr, 0, (_beginthreadex_proc_type)task, (void*)(i * range), 0, nullptr);
         }
+
+        for (int i = range * NTHREAD; i < n; ++i)
+        {
+            res[i] = true;
+            for (int j = 0; j < m / 2; ++j)
+            {
+                if (a[i][j] != a[i][m - j - 1])
+                    res[i] = false;
+            }
+        }
+
         WaitForMultipleObjects(NTHREAD, threads, TRUE, INFINITE);
 
         for (size_t i = 0; i < n; ++i)
