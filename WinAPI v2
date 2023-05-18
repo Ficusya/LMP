@@ -1,0 +1,95 @@
+#include <iostream>
+#include <Windows.h>
+#include <process.h>
+
+const size_t N = 4;
+const size_t M = 5;
+const size_t NTHREAD = 3;
+
+using INFORM = struct elem
+{
+	int** a;
+	size_t beg, end;
+	bool res;
+	int count = 0;
+};
+
+unsigned __stdcall count_max(void* a)
+{
+	INFORM* inform = (INFORM*)a;
+	inform->count = 0;
+	for (int i = inform->beg; i < inform->end; ++i)
+	{
+		inform->res = true;
+		for (int j = 0; j < M / 2; ++j)
+			if (inform->a[i][j] != inform->a[i][M - j - 1])
+				inform->res = false;
+		if (inform->res)
+			inform->count++;
+	}
+	_endthreadex(0);
+	return 0;
+}
+
+int count_max_p(int** a)
+{
+	HANDLE TH[NTHREAD];
+	unsigned THID[NTHREAD];
+	INFORM inform[NTHREAD];
+	size_t n = N / NTHREAD;
+
+	for (size_t i = 0; i < NTHREAD; i++)
+	{
+		inform[i].a = a;
+		inform[i].beg = i * n;
+		inform[i].count = 0;
+		inform[i].res = false;
+		if (i == NTHREAD - 1)
+			inform[i].end = N;
+		else
+			inform[i].end = (i + 1) * n;
+		TH[i] = (HANDLE)_beginthreadex(nullptr, 0, &count_max, &inform[i], 0, nullptr);
+	}
+	WaitForMultipleObjects(NTHREAD, TH, true, INFINITE);
+
+	int gl_count = inform[0].count;
+
+	for (size_t i = 1; i < NTHREAD; i++)
+	{
+		gl_count += inform[i].count;
+	}
+
+	for (size_t i = 0; i < NTHREAD; i++)
+		CloseHandle(TH[i]);
+
+	return gl_count;
+}
+
+void print(int** a)
+{
+	for (int i = 0; i < N; ++i)
+	{
+		for (int j = 0; j < M; ++j)
+			std::cout << a[i][j] << ' ';
+		std::cout << '\n';
+	}
+}
+
+int main()
+{
+	bool choice = true;
+	while (choice)
+	{
+		srand(time(NULL));
+		int** arr = new int* [N];
+		for (int i = 0; i < N; i++)
+			arr[i] = new int[M];
+		for (int i = 0; i < N * M; i++)
+			arr[i / M][i % M] = rand() % 2;
+		print(arr);
+		std::cout << "Symmetrical lines: " << count_max_p(arr);
+		std::cout << "\nAgain? ";
+		std::cin >> choice;
+		std::cout << "==========\n";
+	}
+}
