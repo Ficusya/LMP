@@ -6,20 +6,25 @@ using std::cout;
 int count = 0;
 const int n = 4, m = 5;
 int a[n][m];
-const size_t NTHREAD = n;
+const size_t NTHREAD = 3;
+size_t range = n / NTHREAD;
 
 void task(int i)
 {
     bool flag = true;
-    for (int j = 0; j < m / 2; ++j)
+    for (int k = i; k < i + range; ++k)
     {
-        if (a[i][j] != a[i][m - j - 1])
+        for (int j = 0; j < m / 2; ++j)
         {
-            flag = false;
+            if (a[k][j] != a[k][m - j - 1])
+            {
+                flag = false;
+            }
         }
+        if (flag)
+            count++;
+        else flag = true;
     }
-    if (flag)
-        count++;
 }
 
 int main()
@@ -35,14 +40,28 @@ int main()
         cout << '\n';
     }
     thread threads[NTHREAD];
-    for (int i = 0; i < NTHREAD; i++)
+    for (int i = 0; i < NTHREAD; ++i)
     {
-        threads[i] = thread(task, i);
+        threads[i] = thread(task, i * range);
     }
-    for (int i = 0; i < n; i++)
+
+    bool flag = true;
+    for (int i = range * NTHREAD; i < n; ++i)
+    {
+        for (int j = 0; j < m / 2; ++j)
+        {
+            if (a[i][j] != a[i][m - j - 1])
+                flag = false;
+        }
+        if (flag) ++count;
+        else flag = true;
+    }
+
+    for (int i = 0; i < NTHREAD; i++)
     {
         threads[i].join();
     }
+
     cout << count << '\n';
     return 0;
 }
