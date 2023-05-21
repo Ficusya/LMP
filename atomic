@@ -1,0 +1,72 @@
+#include <iostream>
+#include <thread>
+#include <atomic>
+using std::thread;
+using std::cout;
+
+const int n = 4, m = 5;
+int a[n][m];
+const size_t NTHREAD = 3;
+std::atomic<int> count = 0;
+size_t range = n / NTHREAD;
+
+void task(int i)
+{
+    bool flag = true;
+    int local_cnt = 0;
+    for (int k = i; k < i + range; ++k)
+    {
+        for (int j = 0; j < m / 2; ++j)
+        {
+            if (a[k][j] != a[k][m - j - 1])
+            {
+                flag = false;
+            }
+        }
+        if (flag)
+            local_cnt++;
+        else flag = true;
+    }
+    count += (local_cnt);
+}
+
+int main()
+{
+    srand(time(NULL));
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < m; j++)
+        {
+            a[i][j] = rand() % 2;
+            cout << a[i][j] << " ";
+        }
+        cout << '\n';
+    }
+    thread threads[NTHREAD];
+    for (int i = 0; i < NTHREAD; ++i)
+    {
+        threads[i] = thread(task, i * range);
+    }
+
+    bool flag = true;
+    int cnt = 0;
+    for (int i = range * NTHREAD; i < n; ++i)
+    {
+        for (int j = 0; j < m / 2; ++j)
+        {
+            if (a[i][j] != a[i][m - j - 1])
+                flag = false;
+        }
+        if (flag) cnt++;
+        else flag = true;
+    }
+    count += (cnt);
+
+    for (int i = 0; i < NTHREAD; i++)
+    {
+        threads[i].join();
+    }
+
+    cout << count << '\n';
+    return 0;
+}
