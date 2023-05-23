@@ -1,0 +1,81 @@
+#include <iostream>
+#include <Windows.h>
+#include <omp.h>
+
+const int m = 5;
+
+void f()
+{
+	std::cout /*<< "Thread"*/ << omp_get_thread_num() << '\n';
+}
+
+void fill_arr(int** arr, int size)
+{
+	srand(GetTickCount64());
+	for (int i = 0; i < size; ++i)
+	{
+		for (int j = 0; j < m; ++j)
+		{
+			arr[i][j] = rand() % 2;
+			std::cout << arr[i][j] << ' ';
+		}
+		std::cout << '\n';
+	}
+}
+
+int non_parallel(int** arr, int size)
+{
+	int sum(0);
+	bool flag = true;
+	for (int i = 0; i < size; ++i)
+	{
+		for (int j = 0; j < m / 2; ++j)
+			if (arr[i][j] != arr[i][m - j - 1])
+				flag = false;
+		if (flag) sum++;
+		else flag = true;
+	}
+	return sum;
+}
+
+int parallel(int** arr, int size)
+{
+	int global_sum(0);
+	omp_lock_t lock;
+	omp_init_lock(&lock);
+#pragma omp parallel shared(arr)
+	{
+		int local_sum(0);
+		bool flag(true);
+#pragma omp for schedule(static, 10)//дели на порции по 10//static(по умолч на всех), dynamic(по умолч 1); главное отличие:  в статике изначально рассчитывается кому сколько, а в динамике отдаётся первому освободившемуся(в процессе подсчёта)//третий параметр ищменения порции
+		for (int i = 0; i < size; ++i)
+		{
+			for (int j = 0; j < m / 2; ++j)
+				if (arr[i][j] != arr[i][m - j - 1]) flag = false;
+			if (flag) ++local_sum;
+			else flag = true;
+		}
+
+		omp_set_lock(&lock);
+		global_sum += local_sum;
+		std::cout << local_sum << '\n';
+		omp_unset_lock(&lock);
+	}
+	omp_destroy_lock(&lock);
+	return global_sum;
+}
+
+int main()
+{
+	const int size = 10;
+	int** arr = new int* [size];
+	for (int i = 0; i < size; i++)
+		arr[i] = new int[m];
+	fill_arr(arr, size);
+	std::cout << non_parallel(arr, size) << '\n';
+	std::cout << parallel(arr, size) << '\n';
+
+
+	std::cin.get();
+	return 0;
+}
