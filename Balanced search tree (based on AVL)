@@ -1,0 +1,133 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+// Структура для хранения данных о студенте
+struct Student {
+    string name; // имя и фамилия
+    string grades; // оценки
+    double average; // средний балл
+
+    // Конструктор по умолчанию
+    Student() : name(""), grades(""), average(0) {}
+
+    // Конструктор с параметрами
+    Student(string n, string g) : name(n), grades(g) {
+        average = 0;
+        for (char c : g) {
+            average += c - '0'; // преобразуем символ в число и добавляем к сумме
+        }
+        average /= 5;
+    }
+
+    // Перегрузка оператора сравнения для сортировки по убыванию среднего балла
+    bool operator<(const Student& other) const {
+        return average > other.average;
+    }
+};
+
+// Структура для хранения узла дерева
+struct Node {
+    Student data; // данные о студенте
+    Node* left; // указатель на левого потомка
+    Node* right; // указатель на правого потомка
+    int height; // высота поддерева с корнем в этом узле
+
+    // Конструктор с параметром
+    Node(Student d) : data(d), left(nullptr), right(nullptr), height(1) {}
+};
+
+// Функция для получения высоты поддерева с корнем в узле p
+int getHeight(Node* p) {
+    return p ? p->height : 0;
+}
+
+// Функция для получения баланса поддерева с корнем в узле p
+int getBalance(Node* p) {
+    return getHeight(p->right) - getHeight(p->left);
+}
+
+// Функция для обновления высоты поддерева с корнем в узле p
+void updateHeight(Node* p) {
+    p->height = max(getHeight(p->left), getHeight(p->right)) + 1;
+}
+
+// Функция для правого поворота дерева относительно узла p
+Node* rotateRight(Node* p) {
+    Node* q = p->left; // левый потомок p
+    p->left = q->right; // переносим правое поддерево q в левое поддерево p
+    q->right = p; // делаем p правым потомком q
+    updateHeight(p); // обновляем высоту p
+    updateHeight(q); // обновляем высоту q
+    return q; // возвращаем новый корень поддерева
+}
+
+// Функция для левого поворота дерева относительно узла q
+Node* rotateLeft(Node* q) {
+    Node* p = q->right; // правый потомок q
+    q->right = p->left; // переносим левое поддерево p в правое поддерево q
+    p->left = q; // делаем q левым потомком p
+    updateHeight(q); // обновляем высоту q
+    updateHeight(p); // обновляем высоту p
+    return p; // возвращаем новый корень поддерева
+}
+// Функция для балансировки дерева относительно узла p
+Node* balance(Node* p) {
+    updateHeight(p); // обновляем высоту p
+    int b = getBalance(p); // получаем баланс p
+    if (b == 2) { // если правое поддерево сильно больше левого
+        if (getBalance(p->right) < 0) { // если левое поддерево правого потомка больше его правого поддерева
+            p->right = rotateRight(p->right); // делаем правый поворот относительно правого потомка p
+        }
+        return rotateLeft(p); // делаем левый поворот относительно p
+    }
+    if (b == -2) { // если левое поддерево сильно больше правого
+        if (getBalance(p->left) > 0) { // если правое поддерево левого потомка больше его левого поддерева
+            p->left = rotateLeft(p->left); // делаем левый поворот относительно левого потомка p
+        }
+        return rotateRight(p); // делаем правый поворот относительно p
+    }
+    return p; // если дерево уже сбалансировано, возвращаем p без изменений
+}
+
+// Функция для добавления узла с данными d в дерево с корнем в узле p
+Node* insert(Node* p, Student d) {
+    if (!p) return new Node(d); // если дерево пусто, создаем новый узел с данными d и возвращаем его
+    if (d.average < p->data.average) { // если данные d меньше данных в узле p по критерию сравнения
+        p->left = insert(p->left, d); // добавляем узел с данными d в левое поддерево p
+    }
+    else {
+        p->right = insert(p->right, d); // добавляем узел с данными d в правое поддерево p
+    }
+    return balance(p); // балансируем дерево относительно узла p и возвращаем его
+}
+
+// Функция для вывода на экран первых трех уровней дерева с корнем в узле p
+void printTree(Node* p, int level = 0) {
+    if (!p || level > 2) return; // если дерево пусто или уровень больше 2, прекращаем рекурсию
+    printTree(p->right, level + 1); // выводим правое поддерево с увеличенным уровнем
+    for (int i = 0; i < level; i++) cout << "   "; // выводим отступ в зависимости от уровня
+    cout << "(" << p->data.name << ", " << p->data.grades << ", " << p->data.average << ")" << endl; // выводим данные о студенте в скобках
+    printTree(p->left, level + 1); // выводим левое поддерево с увеличенным уровнем
+}
+
+int main() {
+    ifstream fin("data.txt"); // открываем файл для чтения данных
+    vector<Student> students; // создаем вектор для хранения данных о студентах
+    string name, surname, grades; // создаем строки для хранения имени и оценок студента
+    while (fin >> name >> surname >> grades) { // пока можем считать из файла имя и оценки студента
+        students.push_back(Student(surname, grades)); // добавляем студента в вектор
+    }
+    fin.close(); // закрываем файл
+    sort(students.begin(), students.end()); // сортируем вектор по убыванию суммы оценок
+    Node* root = nullptr; // создаем пустое дерево
+    for (Student s : students) { // для каждого студента в векторе
+        root = insert(root, s); // добавляем узел с данными о студенте в дерево
+    }
+    printTree(root); // выводим на экран первые три уровня дерева
+    return 0;
+}
