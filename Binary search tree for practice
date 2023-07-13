@@ -1,0 +1,98 @@
+#include<fstream>
+#include<string>
+#include<iostream>
+
+using namespace std;
+
+class Node {
+public:
+    Node(string surname, double average) {
+        this->surname = surname;
+        this->average = average;
+        this->left = nullptr;
+        this->right = nullptr;
+    }
+    string surname;
+    double average;
+    Node* left;
+    Node* right;
+};
+
+Node* insert(Node* parent, Node* child) {
+    if (child->average < parent->average) {
+        if (parent->left == nullptr) {
+            parent->left = child;
+        }
+        else {
+            insert(parent->left, child);
+        }
+    }
+    else {
+        if (parent->right == nullptr) {
+            parent->right = child;
+        }
+        else {
+            insert(parent->right, child);
+        }
+    }
+    return parent;
+}
+
+Node* add_node(Node* root, string surname, double average) {
+    Node* new_node = new Node(surname, average);
+    if (root == nullptr)
+        root = new_node;
+    else
+        root = insert(root, new_node);
+    return root;
+}
+
+double average_score(string grades)
+{
+    if (grades.empty() || grades.size() != 5) {
+        return 0.0;
+    }
+    int sum = 0;
+    for (char c : grades) {
+        if (c >= '2' && c <= '5') {
+            sum += c - '0';
+        }
+        else {
+            return 0.0;
+        }
+    }
+    return sum / 5.0;
+}
+
+void Print(Node* t, int level)
+{
+    if (t)
+    {
+        Print(t->right, level + 1);
+        for (int i = 0; i < level; i++)
+            std::cout << ' ';
+        std::cout << t->average << '\n';
+        Print(t->left, level + 1);
+    }
+}
+
+void read_data(string filename) 
+{
+    ifstream file(filename);
+    if (file.is_open()) {
+        string name, surname, grades;
+        Node* root = NULL;
+        while (getline(file, name, ' ') && getline(file, surname, ' ') && getline(file, grades)) {
+            double average = average_score(grades);
+            root = add_node(root, surname, average);
+        }
+        Print(root, 2);
+        file.close();
+    }
+}
+
+int main()
+{
+    read_data("data.txt");
+    std::cin.get();
+}
